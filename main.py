@@ -1,107 +1,65 @@
 from fastapi import FastAPI
-from pydantic import BaseModel, HttpUrl
-import json
+from repository import dog_facts, jokes_object
+from models.joke import Joke
 
 app = FastAPI()
 
-class jokesClass(BaseModel):
-    joke: str | None = None
-    setup: str | None = None
-    delivery: str | None = None
 
-
-dog_facts = {
-  "dog_facts": [
-    {
-      "fact": "Dogs have an extraordinary sense of smell, up to 100,000 times more sensitive than humans."
-    },
-    {
-      "fact": "The Basenji is known as the 'barkless dog' because it makes a unique yodel-like sound instead of barking."
-    },
-    {
-      "fact": "A dog’s nose print is unique, much like a human fingerprint."
-    },
-    {
-      "fact": "The Greyhound is the fastest dog breed, capable of reaching speeds up to 45 miles per hour (72 km/h)."
-    },
-    {
-      "fact": "Dogs can understand up to 250 words and gestures."
-    },
-    {
-      "fact": "Puppies are born blind, deaf, and toothless."
-    },
-    {
-      "fact": "The Labrador Retriever has been the most popular dog breed in the United States for decades."
-    },
-    {
-      "fact": "Dogs curl up in a ball when sleeping to protect their organs, a habit from their wild ancestors."
-    },
-    {
-      "fact": "A dog’s sense of hearing is more than four times better than that of humans."
-    },
-    {
-      "fact": "Some dogs can detect medical conditions such as low blood sugar, seizures, or even certain types of cancer."
-    }
-  ]
-}
-
-jokes_object =    {
-        "jokes" : 
-        [
-            {   
-                "id" : 1,
-                "joke" : "ASCII silly question, get a silly ANSI."
-            },
-            {   
-                "id": 2,
-                "joke":  """"Two SQL tables sit at the bar. A query approaches and asks \"Can I join you?\""""
-            },
-            {   
-                "id": 3,
-                "joke" : "Java is like Alzheimer's, it starts off slow, but eventually, your memory is gone."
-            },
-            {
-                "id": 4,
-                "setup" : "Why did the programmer jump on the table?",
-                "delivery" : "Because debug was on his screen."
-            },
-        ]
-    }
-
-# jokes = {
-#     1: "ASCII silly question, get a silly ANSI.",
-#     2: """ "Two SQL tables sit at the bar. A query approaches and asks \"Can I join you?\"""",
-#     3: "Java is like Alzheimer's, it starts off slow, but eventually, your memory is gone.",
-#     4: ["Why did the programmer jump on the table?", "Because debug was on his screen."]
-# }
-
-# jokes
-# print({jokes_object["jokes"][0]["joke"]})
-# return all jokes
 @app.get("/jokes/")
 async def get_all_jokes():
     return jokes_object
-#Muss noch gefixt werden
-#Return specifif joke
-@app.get("/jokes/{id}")
-async def get_joke(id: int):
+
+
+@app.get("/jokes/{joke_id}")
+async def get_joke(joke_id: int) -> dict[str, str]:
+    #TODO: Muss noch gefixt werden
+    # Return specifif joke
+
     jokes_list = jokes_object["jokes"]
+
     for joke in jokes_list:
-        if joke["id"] == id:
-            if joke["setup"]:
+        if joke["id"] == joke_id:
+            if joke.get("setup"):
                 return{"Setup" : joke["setup"], "Delivery": joke["delivery"]}
-            if joke["joke"] :
+            if joke.get("joke") :
                 return{"Joke": joke["joke"]}      
-# post joke 
+
+    return{"Error": "Joke not found"}
+
+def get_new_id() -> int:
+    all_jokes = jokes_object["jokes"]
+
+    highest_id = 0
+    for joke in all_jokes:
+        if joke["id"] > highest_id:
+            highest_id = joke["id"]
+
+    return highest_id + 1
+
+
+
+# post joke
 @app.post("/joke/")
-async def post_joke(id:int, jokes: jokesClass):
-    jokes_dict = jokes.dict()
-    jokes_dict.update({"id": id})
-    return jokes_dict
+async def post_joke(new_joke: Joke):
+
+    new_id = get_new_id()
+
+    all_jokes = jokes_object["jokes"]
+
+    joke_to_add = {
+        "id": new_id,
+        "joke": new_joke.joke,
+        "setup": new_joke.setup,
+        "delivery": new_joke.delivery,
+    }
+
+    all_jokes.append(joke_to_add) ## might not work because we dont have a database
+
+    return joke_to_add
 
 #update code
 @app.put("/jokes/{id}")
-async def update_joke(id: int, jokes: jokesClass):
+async def update_joke(id: int, jokes: Joke):
     return jokes
 
 #delete code
